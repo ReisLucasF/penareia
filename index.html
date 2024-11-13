@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Catálogo de Imóveis com Google Maps</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <style>
+      #map {
+        height: 90vh;
+        margin-top: 10px;
+      }
+      .info-container {
+        display: none; /* Oculto inicialmente */
+        position: fixed;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        background-color: transparent;
+        width: 90%;
+        transition: all 0.3s ease;
+      }
+      .info-container.active {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      #propertyInfo,
+      #detailsInfo {
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 100%; /* Largura completa inicialmente */
+        transition: width 0.3s ease;
+      }
+      #propertyInfo.half-width {
+        width: 45%; /* Reduz largura para metade ao clicar em Detalhes */
+      }
+      #detailsInfo {
+        width: 45%; /* Define largura de detailsInfo */
+        display: none; /* Oculto inicialmente */
+      }
+      #propertyImages img {
+        width: 150px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <!-- Contêiner para informações -->
+    <div class="info-container" id="infoContainer">
+      <div id="propertyInfo">
+        <h5 id="propertyName">Nome do Imóvel</h5>
+        <div
+          id="propertyImages"
+          class="d-flex justify-content-around mb-3"
+        ></div>
+        <button id="detailsButton" class="btn btn-primary">Detalhes</button>
+        <button id="closePropertyInfo" class="btn btn-secondary ml-2">
+          Fechar
+        </button>
+      </div>
+
+      <div id="detailsInfo">
+        <h5 id="detailsTitle">Detalhes do Imóvel</h5>
+        <p id="propertyDescription"></p>
+        <p><strong>Valor:</strong> R$ <span id="propertyValue"></span></p>
+        <button id="closeDetailsInfo" class="btn btn-secondary">Voltar</button>
+      </div>
+    </div>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC2Jtl5TGm4TtJRQjqLUS0QZ5xj2j6rs7c"></script>
+    <script>
+      // Estilos para ocultar pontos de interesse, rodovias, e outros elementos indesejados
+      const mapStyle = [
+        {
+          featureType: "poi",
+          elementType: "labels",
+          stylers: [{ visibility: "off" }],
+        },
+        {
+          featureType: "poi.attraction", // Exibe apenas atrações turísticas (pontos turísticos)
+          stylers: [{ visibility: "on" }],
+        },
+        {
+          featureType: "transit",
+          stylers: [{ visibility: "off" }],
+        },
+        {
+          featureType: "road",
+          elementType: "labels",
+          stylers: [{ visibility: "off" }],
+        },
+        {
+          featureType: "landscape",
+          elementType: "labels",
+          stylers: [{ visibility: "off" }],
+        },
+        {
+          featureType: "water",
+          elementType: "labels",
+          stylers: [{ visibility: "off" }],
+        },
+      ];
+
+      function initMap() {
+        const map = new google.maps.Map(document.getElementById("map"), {
+          center: { lat: -7.063946, lng: -34.839645 },
+          zoom: 13,
+          mapTypeId: "satellite",
+          styles: mapStyle,
+          zoomControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+        });
+
+        // Propriedades (Imóveis)
+        const properties = [
+          {
+            Nome: "Blue Beach",
+            Fotos: {
+              1: "data:image/png;base64,base64ImageData1",
+              2: "data:image/png;base64,base64ImageData2",
+            },
+            Descricao:
+              "Apartamento com dois quartos, dois banheiros, sala cozinha e varanda. 58m quadrados",
+            Valor: "400.000,00",
+            Coordenadas: { lat: -7.063946, lng: -34.839645 },
+          },
+        ];
+
+        // Adicionando marcador para a propriedade
+        properties.forEach((property) => {
+          const marker = new google.maps.Marker({
+            position: property.Coordenadas,
+            map: map,
+            title: property.Nome,
+          });
+
+          // Evento para mostrar informações do imóvel ao clicar no marcador
+          marker.addListener("click", () => {
+            showPropertyInfo(property);
+          });
+        });
+      }
+
+      let selectedProperty = null;
+
+      function showPropertyInfo(property) {
+        selectedProperty = property;
+        document.getElementById("propertyName").textContent = property.Nome;
+        const imagesContainer = document.getElementById("propertyImages");
+        imagesContainer.innerHTML = "";
+
+        for (const [key, value] of Object.entries(property.Fotos)) {
+          const img = document.createElement("img");
+          img.src = value;
+          img.classList.add("img-thumbnail", "mx-1");
+          imagesContainer.appendChild(img);
+        }
+
+        // Exibe o contêiner e oculta o detailsInfo
+        document.getElementById("infoContainer").classList.add("active");
+        document.getElementById("propertyInfo").classList.remove("half-width");
+        document.getElementById("detailsInfo").style.display = "none";
+        document.getElementById("propertyInfo").style.display = "block";
+      }
+
+      document.getElementById("detailsButton").onclick = () => {
+        if (selectedProperty) {
+          // Verifica se há uma propriedade selecionada
+          document.getElementById("detailsTitle").textContent =
+            selectedProperty.Nome;
+          document.getElementById("propertyDescription").textContent =
+            selectedProperty.Descricao;
+          document.getElementById("propertyValue").textContent =
+            selectedProperty.Valor;
+
+          document.getElementById("propertyInfo").classList.add("half-width");
+          document.getElementById("detailsInfo").style.display = "block";
+        }
+      };
+
+      document.getElementById("closeDetailsInfo").onclick = () => {
+        document.getElementById("propertyInfo").classList.remove("half-width");
+        document.getElementById("detailsInfo").style.display = "none";
+      };
+
+      document.getElementById("closePropertyInfo").onclick = () => {
+        document.getElementById("infoContainer").classList.remove("active");
+        document.getElementById("propertyInfo").style.display = "none";
+        document.getElementById("detailsInfo").style.display = "none";
+      };
+
+      // Inicializar o mapa quando a página é carregada
+      window.onload = initMap;
+    </script>
+  </body>
+</html>

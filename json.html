@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imóvel Formulário</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      display: flex;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+      background-color: #f8f9fa;
+    }
+    .container {
+      display: flex;
+      width: 90%;
+      max-width: 800px;
+      gap: 20px;
+    }
+    .json-output {
+      background-color: #f0f0f0;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-y: auto;
+      max-height: 400px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Formulário de entrada -->
+  <div class="col-md-6">
+    <h4>Informações do Imóvel</h4>
+    <form id="propertyForm">
+      <div class="form-group">
+        <label for="name">Nome do Imóvel</label>
+        <input type="text" class="form-control" id="name" required>
+      </div>
+      <div class="form-group">
+        <label for="description">Descrição</label>
+        <textarea class="form-control" id="description" rows="3" required></textarea>
+      </div>
+      <div class="form-group">
+        <label for="price">Valor</label>
+        <input type="text" class="form-control" id="price" required>
+      </div>
+      <div class="form-group">
+        <label for="latitude">Latitude</label>
+        <input type="number" class="form-control" id="latitude" step="any" required>
+      </div>
+      <div class="form-group">
+        <label for="longitude">Longitude</label>
+        <input type="number" class="form-control" id="longitude" step="any" required>
+      </div>
+      <div class="form-group">
+        <label for="images">Fotos</label>
+        <input type="file" class="form-control-file" id="images" multiple accept="image/*">
+      </div>
+      <button type="button" class="btn btn-primary" onclick="generateJson()">Gerar JSON</button>
+    </form>
+  </div>
+
+  <!-- JSON de saída -->
+  <div class="col-md-6">
+    <h4>JSON Gerado</h4>
+    <pre id="jsonOutput" class="json-output"></pre>
+  </div>
+</div>
+
+<script>
+  // Função para converter imagens para base64 e gerar JSON
+  async function generateJson() {
+    const name = document.getElementById("name").value;
+    const description = document.getElementById("description").value;
+    const price = document.getElementById("price").value;
+    const latitude = parseFloat(document.getElementById("latitude").value);
+    const longitude = parseFloat(document.getElementById("longitude").value);
+    const images = document.getElementById("images").files;
+
+    const fotos = {};
+
+    // Converter cada imagem para base64
+    for (let i = 0; i < images.length; i++) {
+      fotos[i + 1] = await toBase64(images[i]);
+    }
+
+    // Criar o JSON com os dados do imóvel e as imagens em base64
+    const jsonData = {
+      Nome: name,
+      Fotos: fotos,
+      Descricao: description,
+      Valor: price,
+      Coordenadas: { lat: latitude, lng: longitude }
+    };
+
+    // Exibir o JSON na área de saída
+    document.getElementById("jsonOutput").textContent = JSON.stringify(jsonData, null, 2);
+  }
+
+  // Função para converter imagem para base64
+  function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
+
+</body>
+</html>
