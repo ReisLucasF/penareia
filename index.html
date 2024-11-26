@@ -8,13 +8,14 @@
       rel="stylesheet"
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
     />
+
     <style>
       #map {
-        height: 90vh;
+        height: 98vh;
         margin-top: 10px;
       }
       .info-container {
-        display: none; /* Oculto inicialmente */
+        display: none;
         position: fixed;
         top: 10%;
         left: 50%;
@@ -34,20 +35,64 @@
         background-color: white;
         border: 1px solid #ddd;
         border-radius: 5px;
-        padding: 20px;
+        padding: 10px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        width: 100%; /* Largura completa inicialmente */
+        width: 100%;
         transition: width 0.3s ease;
       }
+      #propertyInfo {
+        width: 100%;
+      }
       #propertyInfo.half-width {
-        width: 45%; /* Reduz largura para metade ao clicar em Detalhes */
+        width: 50%;
       }
       #detailsInfo {
-        width: 45%; /* Define largura de detailsInfo */
-        display: none; /* Oculto inicialmente */
+        width: 50%;
+        display: none;
       }
-      #propertyImages img {
-        width: 150px;
+      .carousel-inner img {
+        max-height: 650px;
+        width: 100%;
+        object-fit: contain;
+        border-radius: 5px;
+      }
+
+      /* Estilos para o posicionamento das setas */
+      .carousel-control-prev,
+      .carousel-control-next {
+        width: 40px;
+        height: 40px;
+        background-color: rgb(255, 255, 255);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.8;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      /* Posiciona as setas dentro da imagem, nas extremidades laterais */
+      .carousel-control-prev {
+        left: 10px;
+      }
+
+      .carousel-control-next {
+        right: 10px;
+      }
+
+      /* Torna a seta branca */
+      .carousel-control-prev-icon,
+      .carousel-control-next-icon {
+        background-color: transparent;
+        background-size: 50%;
+        filter: invert(1);
+      }
+
+      .carousel-control-prev:hover,
+      .carousel-control-next:hover {
+        background-color: #757575;
+        opacity: 1;
       }
     </style>
   </head>
@@ -59,9 +104,33 @@
       <div id="propertyInfo">
         <h5 id="propertyName">Nome do Imóvel</h5>
         <div
-          id="propertyImages"
-          class="d-flex justify-content-around mb-3"
-        ></div>
+          id="propertyImagesCarousel"
+          class="carousel slide mb-3"
+          data-ride="carousel"
+        >
+          <div class="carousel-inner" id="carouselItems">
+            <!-- As imagens do carrossel serão adicionadas dinamicamente aqui -->
+          </div>
+          <a
+            class="carousel-control-prev"
+            href="#propertyImagesCarousel"
+            role="button"
+            data-slide="prev"
+          >
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="sr-only">Anterior</span>
+          </a>
+          <a
+            class="carousel-control-next"
+            href="#propertyImagesCarousel"
+            role="button"
+            data-slide="next"
+          >
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="sr-only">Próximo</span>
+          </a>
+        </div>
+
         <button id="detailsButton" class="btn btn-primary">Detalhes</button>
         <button id="closePropertyInfo" class="btn btn-secondary ml-2">
           Fechar
@@ -78,7 +147,6 @@
 
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC2Jtl5TGm4TtJRQjqLUS0QZ5xj2j6rs7c"></script>
     <script>
-      // Estilos para ocultar pontos de interesse, rodovias, e outros elementos indesejados
       const mapStyle = [
         {
           featureType: "poi",
@@ -86,7 +154,7 @@
           stylers: [{ visibility: "off" }],
         },
         {
-          featureType: "poi.attraction", // Exibe apenas atrações turísticas (pontos turísticos)
+          featureType: "poi.attraction",
           stylers: [{ visibility: "on" }],
         },
         {
@@ -121,52 +189,45 @@
           fullscreenControl: false,
         });
 
-        // Propriedades (Imóveis)
-        const properties = [
-          {
-            Nome: "Blue Beach",
-            Fotos: {
-              1: "data:image/png;base64,base64ImageData1",
-              2: "data:image/png;base64,base64ImageData2",
-            },
-            Descricao:
-              "Apartamento com dois quartos, dois banheiros, sala cozinha e varanda. 58m quadrados",
-            Valor: "400.000,00",
-            Coordenadas: { lat: -7.063946, lng: -34.839645 },
-          },
-        ];
+        fetch("propriedades.json")
+          .then((response) => response.json())
+          .then((properties) => {
+            properties.forEach((property) => {
+              const marker = new google.maps.Marker({
+                position: property.Coordenadas,
+                map: map,
+                title: property.Nome,
+              });
 
-        // Adicionando marcador para a propriedade
-        properties.forEach((property) => {
-          const marker = new google.maps.Marker({
-            position: property.Coordenadas,
-            map: map,
-            title: property.Nome,
-          });
-
-          // Evento para mostrar informações do imóvel ao clicar no marcador
-          marker.addListener("click", () => {
-            showPropertyInfo(property);
-          });
-        });
+              marker.addListener("click", () => {
+                showPropertyInfo(property);
+              });
+            });
+          })
+          .catch((error) =>
+            console.error("Erro ao carregar propriedades:", error)
+          );
       }
-
-      let selectedProperty = null;
 
       function showPropertyInfo(property) {
         selectedProperty = property;
         document.getElementById("propertyName").textContent = property.Nome;
-        const imagesContainer = document.getElementById("propertyImages");
-        imagesContainer.innerHTML = "";
 
-        for (const [key, value] of Object.entries(property.Fotos)) {
+        const carouselItemsContainer = document.getElementById("carouselItems");
+        carouselItemsContainer.innerHTML = "";
+
+        Object.entries(property.Fotos).forEach(([key, value], index) => {
+          const itemDiv = document.createElement("div");
+          itemDiv.classList.add("carousel-item");
+          if (index === 0) itemDiv.classList.add("active");
+
           const img = document.createElement("img");
           img.src = value;
-          img.classList.add("img-thumbnail", "mx-1");
-          imagesContainer.appendChild(img);
-        }
+          img.classList.add("d-block", "w-100");
+          itemDiv.appendChild(img);
+          carouselItemsContainer.appendChild(itemDiv);
+        });
 
-        // Exibe o contêiner e oculta o detailsInfo
         document.getElementById("infoContainer").classList.add("active");
         document.getElementById("propertyInfo").classList.remove("half-width");
         document.getElementById("detailsInfo").style.display = "none";
@@ -175,7 +236,6 @@
 
       document.getElementById("detailsButton").onclick = () => {
         if (selectedProperty) {
-          // Verifica se há uma propriedade selecionada
           document.getElementById("detailsTitle").textContent =
             selectedProperty.Nome;
           document.getElementById("propertyDescription").textContent =
@@ -199,8 +259,11 @@
         document.getElementById("detailsInfo").style.display = "none";
       };
 
-      // Inicializar o mapa quando a página é carregada
       window.onload = initMap;
     </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
   </body>
 </html>
